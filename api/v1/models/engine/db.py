@@ -4,7 +4,7 @@ from os import getenv
 from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from sqlalchemy.orm import sessionmaker, scoped_session
-from models.base_model import BaseModel, Base
+from models.base_model import Base
 from models.buyer import Buyer
 from models.category import Category
 from models.notification import Notification

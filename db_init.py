@@ -2,15 +2,13 @@
 """Initialize the database with some objects
 """
 from datetime import datetime, timedelta
-from models import storage
-from models.photo import Photo
-from models.vendor import Vendor
-from models.category import Category
-from models.product import Product
-from models.review import Review
-from models.order import Order
-from models.buyer import Buyer
-from models.payment import Payment
+from api.v1.models import storage
+from api.v1.models.vendor import Vendor
+from api.v1.models.category import Category
+from api.v1.models.product import Product
+from api.v1.models.review import Review
+from api.v1.models.order import Order
+from api.v1.models.buyer import Buyer
 
 
 # Photos
