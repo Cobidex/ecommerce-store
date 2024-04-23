@@ -14,6 +14,7 @@ from routes import cart_routes
 from routes import order_routes
 from routes import payement_routes
 from services.email import email_sender
+from models import storage
 
 app = Flask(__name__)
 
@@ -36,6 +37,22 @@ app.register_blueprint(cart_routes, url_prefix='/api/v1/')
 app.register_blueprint(order_routes, url_prefix='api/v1/')
 app.register_blueprint(payement_routes, url_prefix='/api/v1/')
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+@app.teardown_appcontext
+def close_db(error):
+    """ Close Storage """
+    storage.close()
+
+
+@app.errorhandler(404)
+def not_found(error):
+    """ 404 Error
+    ---
+    responses:
+      404:
+        description: a resource was not found
+    """
+    return make_response(jsonify({'error': "Not found"}), 404)
 
 if __name__ == '__main__':
     email_sender.initialize(app)
