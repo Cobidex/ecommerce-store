@@ -6,6 +6,7 @@ from models import storage
 from models.cart import Cart
 from models.product import Product
 
+
 @cart_routes.get('/carts')
 @buyers_only
 def get_cart_items(user):
@@ -23,7 +24,7 @@ def add_to_cart(user):
     product_id = fields.get('product_id')
     qty = fields.get('qty')
     location_id = fields.get('location_id')
-    
+
     product = storage.get(Product, product_id)
     if not product:
         return jsonify({"Error": "product not found"}), 404
@@ -31,7 +32,7 @@ def add_to_cart(user):
         return jsonify({"Error": "Product out of stock"}), 403
     if not location_id:
         return jsonify({"Error": "location_id missing"}), 404
-    
+
     for location in product.delivery_locations:
         if location_id == location.id:
             cost_of_delivery = location.cost_of_delivery

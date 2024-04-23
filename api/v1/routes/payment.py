@@ -15,9 +15,9 @@ def webhook():
     body = request.get_json()
     hash_algorithm = hashlib.sha512()
     hash_algorithm.update(json.dumps(body).encode())
-    hash_signature = hmac.new(getenv('PAYMENT_SECRET_KEY').encode(),\
-                              hash_algorithm.digest(),\
-                                hashlib.sha512).hexdigest()
+    hash_signature = hmac.new(getenv('PAYMENT_SECRET_KEY').encode(),
+                              hash_algorithm.digest(),
+                              hashlib.sha512).hexdigest()
 
     if hash_signature == request.headers.get("X-Paystack-Signature"):
         if body.get('event') == 'paymentrequest.success':

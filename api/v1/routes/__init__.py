@@ -1,5 +1,13 @@
 #!/usr/bin/python3
 '''initializing package'''
+from routes.review import *
+from routes.product import *
+from routes.category import *
+from routes.notification import *
+from routes.cart import *
+from routes.buyer import *
+from routes.vendor import *
+from routes.index import *
 from flask import Blueprint
 app_routes = Blueprint('app_views', __name__)
 vendor_routes = Blueprint('vendor_routes', __name__)
@@ -11,14 +19,3 @@ review_routes = Blueprint('review_routes', __name__)
 cart_routes = Blueprint('cart_routes', __name__)
 order_routes = Blueprint('order_routes', __name__)
 payement_routes = Blueprint('payment_routes', __name__)
-
-from routes.index import *
-from routes.vendor import *
-from routes.buyer import *
-from routes.cart import *
-from routes.notification import *
-from routes.category import *
-from routes.product import *
-from routes.review import *
-from routes.review import *
-from routes.review import *

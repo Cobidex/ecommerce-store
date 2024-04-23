@@ -13,7 +13,8 @@ def GET_all_notifications():
     per_page = request.args.get('per_page', 10, type=int)
     offset = (page_number - 1) * per_page
     querry = {"offset": offset, "per_page": per_page}
-    notifications = [notification.to_dict() for notification in storage.all(Notification, **querry).values()]
+    notifications = [notification.to_dict() for notification in storage.all(
+        Notification, **querry).values()]
     return jsonify(notifications)
 
 

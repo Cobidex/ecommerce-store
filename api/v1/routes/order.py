@@ -7,6 +7,7 @@ from services.email import email_sender
 from models.cart import Cart
 from models import storage
 
+
 @order_routes.patch('/orders/<item_id>')
 @vendors_only
 def send_delivery_token(user, item_id):
@@ -18,7 +19,8 @@ def send_delivery_token(user, item_id):
     order = storage.get(Order, item.order)
     email_sender.send_delivery_token(order.email, item)
     return jsonify({"status": "success"}), 200
-    
+
+
 @order_routes.patch('/orders/verify_delivery_code')
 @vendors_only
 def verify_delivery_code(user):
@@ -29,7 +31,7 @@ def verify_delivery_code(user):
     item_id = fields.get('item_id')
     if not (code and item_id):
         return jsonify({"Error": "missing field"})
-    
+
     item = storage.get(OrderItem, item_id)
     if not item:
         return jsonify({"Error": "Item not found"}), 404
@@ -40,7 +42,6 @@ def verify_delivery_code(user):
     item.delivered = True
     item.save()
     return jsonify(item.to_dict()), 200
-
 
 
 @order_routes.post('/orders')
@@ -57,9 +58,10 @@ def create_order(user):
     phone = fields.get('phone')
     order_key = fields.get('order_key')
 
-    if not (full_name and buyer_id and address and city and phone and order_key and email):
+    if not (
+            full_name and buyer_id and address and city and phone and order_key and email):
         return jsonify({"Error": "field missing"}), 400
-    
+
     cart = Cart(request, user)
     cart_content = cart.get_cart(user)
     order = {

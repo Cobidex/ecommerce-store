@@ -1,6 +1,7 @@
 from sqlalchemy import Integer, String, Column, ForeignKey, Boolean
 from models.base_model import BaseModel, Base
 
+
 class Order(BaseModel, Base):
     """
         manage orders
@@ -15,6 +16,7 @@ class Order(BaseModel, Base):
     amount_paid = Column(Integer)
     to_pay = Column(Integer, nullable=False)
     billing_status = Column(Boolean, default=False)
+
 
 class OrderItem(BaseModel, Base):
     """

@@ -24,7 +24,7 @@ classes = {
     'Vendor': Vendor,
     'Order': Order,
     'OrderItem': OrderItem
-    }
+}
 
 
 class DBStorage():
@@ -45,7 +45,7 @@ class DBStorage():
             exit(1)
         connection_string = DB_URL
         self.__engine = create_engine(connection_string, pool_pre_ping=True)
-    
+
     def all(self, cls=None, **querry):
         """gets objects of a specific class
         If cls is None: queries all types of objects."""
@@ -56,12 +56,12 @@ class DBStorage():
         if cls is None:
             for a_class in classes.values():
                 objs += self.__session.query(a_class)\
-                        .limit(per_page)\
-                        .offset(offset).all()
+                    .limit(per_page)\
+                    .offset(offset).all()
         elif cls in classes.values():
-                objs = self.__session.query(cls)\
-                        .limit(per_page)\
-                        .offset(offset).all()
+            objs = self.__session.query(cls)\
+                .limit(per_page)\
+                .offset(offset).all()
         else:
             return dict()
 
@@ -79,16 +79,16 @@ class DBStorage():
     def new(self, obj):
         """"adds an object to current database session"""
         self.__session.add(obj)
-    
+
     def save(self):
         """commits changes to the current database session"""
         self.__session.commit()
-    
+
     def delete(self, obj=None):
         """delete from the current session"""
         if obj:
             self.__session.delete(obj)
-    
+
     def reload(self):
         """creates a new session"""
         Base.metadata.create_all(self.__engine)
@@ -99,11 +99,11 @@ class DBStorage():
         session = sessionmaker(bind=self.__engine, expire_on_commit=False)
         Session = scoped_session(session)
         self.__session = Session()
-    
+
     def close(self):
         """closes the current session"""
         self.__session.close()
-    
+
     def get(self, cls, id):
         """retrieves one object
         cls: The class of the object to retrieve
@@ -117,7 +117,7 @@ class DBStorage():
         if not obj:
             return (None)
         return (obj)
-    
+
     def get_reviews(self, cls, product_id, **querry):
         """retrieves product reviews
         cls: The class of the object to retrieve
@@ -127,14 +127,13 @@ class DBStorage():
         if cls not in cls_list:
             return (None)
         per_page = querry.get('per_page')
-        offset =querry.get('offset')
+        offset = querry.get('offset')
 
         objs = self.__session.query(cls).filter(cls.product_id == product_id)\
             .limit(per_page).offset(offset).all()
         if not objs:
             return (None)
         return (objs)
-
 
     def get_by_category(self, cls, category_id, **querry):
         """retrieves one object
@@ -144,16 +143,16 @@ class DBStorage():
         cls_list = list(classes.values())
         if cls not in cls_list:
             return (None)
-        
-        per_page = querry.get('per_page')
-        offset =querry.get('offset')
 
-        objs = self.__session.query(cls).filter(cls.category_id == category_id)\
-            .limit(per_page).offset(offset).all()
+        per_page = querry.get('per_page')
+        offset = querry.get('offset')
+
+        objs = self.__session.query(cls).filter(
+            cls.category_id == category_id) .limit(per_page).offset(offset).all()
         if not objs:
             return (None)
         return (objs)
-    
+
     def search_products(self, cls, **querry):
         """retrieves search objects
         cls: The class of the objects to retrieve
@@ -162,9 +161,9 @@ class DBStorage():
         cls_list = list(classes.values())
         if cls not in cls_list:
             return (None)
-        
+
         per_page = querry.get('per_page')
-        offset =querry.get('offset')
+        offset = querry.get('offset')
         name = querry.get('name')
 
         objs = self.__session.query(cls).filter(cls.name.like(f"%{name}%"))\
@@ -173,7 +172,6 @@ class DBStorage():
             return (None)
         return (objs)
 
-
     def get_by_email(self, cls, email):
         """retrieves one object
         cls: The class of the object to retrieve(Vendor | Buyer)
@@ -181,9 +179,10 @@ class DBStorage():
         """
         if cls not in list(classes.values()):
             return (None)
-        
-        return self.__session.query(cls).filter(cls.email == email).first() or None
-    
+
+        return self.__session.query(cls).filter(
+            cls.email == email).first() or None
+
     def get_by_buyer(self, cls, buyer_id):
         """retrieves one object
         cls: The class of the object to retrieve(Vendor | Buyer)
@@ -191,9 +190,10 @@ class DBStorage():
         """
         if cls not in list(classes.values()):
             return (None)
-        
-        return self.__session.query(cls).filter(cls.buyer_id == buyer_id).first() or None
-    
+
+        return self.__session.query(cls).filter(
+            cls.buyer_id == buyer_id).first() or None
+
     def get_by_name(self, cls, name):
         """retrieves one object
         cls: The class of the object to retrieve
@@ -201,9 +201,10 @@ class DBStorage():
         """
         if cls not in list(classes.values()):
             return (None)
-        
-        return self.__session.query(cls).filter(cls.name == name).first() or None
-    
+
+        return self.__session.query(cls).filter(
+            cls.name == name).first() or None
+
     def get_by_name(self, cls, name):
         """retrieves one object
         cls: The class of the object to retrieve
@@ -211,9 +212,9 @@ class DBStorage():
         """
         if cls not in list(classes.values()):
             return (None)
-        
-        return self.__session.query(cls).filter(cls.name == name).first() or None
 
+        return self.__session.query(cls).filter(
+            cls.name == name).first() or None
 
     def count(self, cls=None):
         """

@@ -2,14 +2,17 @@
 """Manage products
 """
 from models.base_model import BaseModel, Base
-from sqlalchemy import Column, String, Integer,ForeignKey, JSON, Table, Float
+from sqlalchemy import Column, String, Integer, ForeignKey, JSON, Table, Float
 from sqlalchemy.orm import relationship
 
 product_delivery_association = Table(
     'product_delivery_association', Base.metadata,
     Column('product_id', String(60), ForeignKey('products.id')),
-    Column('delivery_location_id', String(60), ForeignKey('delivery_locations.id'))
+    Column('delivery_location_id', String(60),
+           ForeignKey('delivery_locations.id'))
 )
+
+
 class Product(BaseModel, Base):
     """Products of vendors for buyers
     """
@@ -26,12 +29,12 @@ class Product(BaseModel, Base):
     reviews = relationship('Review', backref='product',
                            cascade='all, delete-orphan')
 
-    delivery_locations = relationship("DeliveryLocation",\
-                                      secondary='product_delivery_association',\
+    delivery_locations = relationship("DeliveryLocation",
+                                      secondary='product_delivery_association',
                                       back_populates="products",
                                       cascade="all, delete",
                                       passive_deletes=True)
-    
+
     def to_dict(self):
         """returns dictionary form of object"""
         my_dict = {
@@ -46,7 +49,8 @@ class Product(BaseModel, Base):
             'updated_at': self.updated_at.isoformat()
         }
 
-        delivery_locations = [location.to_dict() for location in self.delivery_locations]
+        delivery_locations = [location.to_dict()
+                              for location in self.delivery_locations]
         my_dict['deliver_locations'] = delivery_locations
 
         reviews = [review.to_dict() for review in self.reviews]
@@ -59,12 +63,12 @@ class DeliveryLocation(BaseModel, Base):
     __tablename__ = 'delivery_locations'
     address = Column(String(128))
     cost_of_delivery = Column(Integer, default=0)
-    products = relationship("Product",\
-                            secondary='product_delivery_association',\
+    products = relationship("Product",
+                            secondary='product_delivery_association',
                             back_populates="delivery_locations",
                             cascade="all, delete",
                             passive_deletes=True)
-    
+
     def to_dict(self):
         """returns dictionary form of object"""
         my_dict = {

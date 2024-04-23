@@ -9,16 +9,12 @@ from models.review import Review
 from models.product import Product
 from middlewares.auth_middleware import login_required
 from middlewares.buyer_middleware import buyers_only
-from services.logger import (
-    get_all_reviews_logger,
-    post_product_review_logger,
-    update_product_review,
-    delete_product_review_logger
-)
+from services.logger import get_logger
 
 
 @review_routes.get('/products/<product_id>/reviews')
 def GET_all_reviews(product_id):
+    get_all_reviews_logger = get_logger('get_all_reviews')
     page_number = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     offset = (page_number - 1) * per_page
@@ -33,6 +29,7 @@ def GET_all_reviews(product_id):
 @buyers_only
 def POST_review(user, product_id):
     fields = request.get_json()
+    post_product_review_logger = get_logger('post_product_review')
     review = {}
     review['text'] = fields.get('text')
     if not fields:
@@ -47,7 +44,8 @@ def POST_review(user, product_id):
 
     new_review = Review(**review)
     new_review.save()
-    post_product_review_logger.info(f"review: {new_review.id}, status: success")
+    post_product_review_logger.info(
+        f"review: {new_review.id}, status: success")
 
 
 @review_routes.patch('/reviews/<review_id>')
@@ -65,9 +63,10 @@ def UPDATE_review(user, review_id):
 
     if user.get('id') != review.buyer_id:
         return jsonify({"Error": "unauthorized"}), 403
-    
+
     review.text = text
     review.save()
+    update_product_review = get_logger('update_product')
     update_product_review.info(f"review: {review.id}, status: success")
     return jsonify(review.to_dict()), 200
 
@@ -81,7 +80,9 @@ def DELETE_review(user, review_id):
         return jsonify({"Error": "Not found"}), 404
     if user.get('id') == review.buyer_id:
         review.delete()
-        delete_product_review_logger.info(f"review: {review_id}, status: success")
+        delete_product_review_logger = get_logger('delete_product_review')
+        delete_product_review_logger.info(
+            f"review: {review_id}, status: success")
         return jsonify({"status": "success"}), 200
 
     return jsonify({"Error": "Unauthorized"}), 403

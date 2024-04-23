@@ -12,7 +12,6 @@ def admin_only(route):
         if not token:
             return jsonify({"Error": "Unauthorized, login required!"}), 401
 
-        
         user = verify_token(token)
         if not user:
             return jsonify({"Error": "Unauthorized, login"}), 401

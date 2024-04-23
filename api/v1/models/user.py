@@ -26,7 +26,8 @@ class User(BaseModel):
         """
         self.password = self.password.encode('utf-8')
         salt_bytes = bcrypt.gensalt()
-        self.password = bcrypt.hashpw(self.password, salt_bytes).decode('utf-8')
+        self.password = bcrypt.hashpw(
+            self.password, salt_bytes).decode('utf-8')
 
     def compare_pwd(self, password):
         """compares given password to determine match"""

@@ -8,13 +8,14 @@ from models.category import Category
 from models.product import Product
 from middlewares.admin_middleware import admin_only
 
+
 @category_routes.get('/categories')
 def GET_categories():
     page_number = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     offset = (page_number - 1) * per_page
     querry = {"offset": offset, "per_page": per_page}
-    categories = [category.to_dict() for category in\
+    categories = [category.to_dict() for category in
                   storage.all(Category, **querry).values()]
     return jsonify(categories)
 
@@ -60,5 +61,5 @@ def Rename_category(category_id):
         category['name'] = fields.get('name')
         category.save()
         return jsonify(category.to_dict()), 200
-    
+
     return jsonify({"Error": "Not found"}), 404

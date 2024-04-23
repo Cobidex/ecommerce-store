@@ -17,7 +17,7 @@ from services.email import email_sender
 
 app = Flask(__name__)
 
-app.config['MAIL_SERVER']= getenv('MAIL_SERVER')
+app.config['MAIL_SERVER'] = getenv('MAIL_SERVER')
 app.config['MAIL_PORT'] = int(getenv('MAIL_PORT'))
 app.config['MAIL_USERNAME'] = getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = getenv('MAIL_PASSWORD')

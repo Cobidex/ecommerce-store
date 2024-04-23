@@ -10,21 +10,7 @@ from lib.utils import get_token, verify_token
 from middlewares.auth_middleware import login_required
 from middlewares.admin_middleware import admin_only
 from services.redis import redisClient
-from services.logger import (
-    login_logger,
-    logout_logger,
-    register_logger,
-    account_activation_logger,
-    verify_email_logger,
-    update_profile_logger,
-    request_verification_logger,
-    email_update_logger,
-    account_deactivation_logger,
-    get_profile_logger,
-    verification_complete_email_logger,
-    get_all_buyers_logger,
-    cart_creation_logger
-    )
+from services.logger import get_logger
 from services.email import email_sender
 
 
@@ -45,26 +31,28 @@ def register():
             return jsonify({"Error": "missing email"}), 400
         if not buyer_data.get('password'):
             return jsonify({"Error": "missing password"}), 400
-        
+
         exists = storage.get_by_email(Buyer, buyer_data.get('email'))
         if (exists):
             return jsonify({"Error": "buyer already exists"}), 409
-        
+
         new_buyer = Buyer(**buyer_data)
         new_buyer.hash_password()
         new_buyer.save()
 
         cart_details = {"buyer_id": new_buyer.id}
+        register_logger = get_logger('register_logger')
         register_logger.info(f"buyer: {new_buyer.id}, status: success")
 
         return jsonify(new_buyer.to_dict()), 201
-    
+
     return jsonify({"Error": "not a valid json"}), 400
 
 
 @buyer_routes.post('/buyers/login')
 def login():
     credentials = request.get_json()
+    login_logger = get_logger('buyer_login')
 
     if credentials:
         email = credentials.get('email')
@@ -78,27 +66,28 @@ def login():
         if not exists:
             return jsonify({"Error": "User not found"}), 404
         if not exists.compare_pwd(password):
-            login_logger.info(f"buyer: {exists.id}, status: failed, reason: incorrect password")
+            login_logger.info(
+                f"buyer: {exists.id}, status: failed, reason: incorrect password")
             return jsonify({"Error": "Unauthorized"}), 401
 
-        td = datetime.now()+timedelta(seconds=86400)
+        td = datetime.now() + timedelta(seconds=86400)
 
-        #auth token for session management, expires in 24hrs   
+        # auth token for session management, expires in 24hrs
         token = get_token({
-                            "id": exists.id,
-                            "model": 'Buyer',
-                            "is_admin": exists.is_admin,
-                            "is_active": exists.is_active,
-                            "role": 'buyer',
-                            "exp": td
-                            })
+            "id": exists.id,
+            "model": 'Buyer',
+            "is_admin": exists.is_admin,
+            "is_active": exists.is_active,
+            "role": 'buyer',
+            "exp": td
+        })
 
         login_logger.info(f"buyer: {exists.id}, status: success")
         response = make_response(jsonify(exists.to_dict()))
-        response.set_cookie('auth_token', token, expires=td,\
+        response.set_cookie('auth_token', token, expires=td,
                             httponly=True, secure=True)
         return response
-    
+
     return jsonify({"Error": "not a valid json"}), 400
 
 
@@ -108,6 +97,7 @@ def logout():
     token = get_token({"exp": 1})
     response = make_response(redirect('/login'))
     response.set_cookie('auth_token', token)
+    logout_logger = get_logger('logout_user')
     logout_logger(f"buyer: {buyer.id}, status: success")
     return response
 
@@ -115,11 +105,13 @@ def logout():
 @buyer_routes.get('/buyers')
 @admin_only
 def GET_all_buyers():
+    get_all_buyers_logger = get_logger('get_all_buyers')
     page_number = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     offset = (page_number - 1) * per_page
     querry = {"offset": offset, "per_page": per_page}
-    buyers = [buyer.to_dict() for buyer in storage.all(Buyer, **querry).values()]
+    buyers = [buyer.to_dict()
+              for buyer in storage.all(Buyer, **querry).values()]
     get_all_buyers_logger.info("status: success")
     return jsonify(buyers)
 
@@ -128,11 +120,12 @@ def GET_all_buyers():
 @admin_only
 def GET_buyer(buyer_id):
     buyer = storage.get(Buyer, buyer_id)
-    
+    get_profile_logger = get_logger('get_buyer_profile')
+
     if (buyer):
         get_profile_logger(f"buyer: {buyer.id}, status: success")
         return jsonify(buyer.to_dict()), 200
-    
+
     return jsonify({"Error": "Not found"}), 404
 
 
@@ -140,14 +133,14 @@ def GET_buyer(buyer_id):
 @login_required
 def GET_me(user=None):
     buyer_id = user.get('id')
-
+    get_profile_logger = get_logger('get_user_profile')
 
     buyer = storage.get(Buyer, buyer_id)
-    
+
     if (buyer):
         get_profile_logger(f"buyer: {buyer.id}, status: success")
         return jsonify(buyer.to_dict()), 200
-    
+
     return jsonify({"Error": "Not found"}), 404
 
 
@@ -155,10 +148,11 @@ def GET_me(user=None):
 @login_required
 def UPDATE_me(user):
     fields = request.get_json()
+    update_profile_logger = get_logger('update_user_profile')
 
     if not fields:
         return jsonify({"Error": "Not a valid json"})
-    
+
     buyer_id = user.get('id')
 
     password = fields.get('password')
@@ -170,7 +164,7 @@ def UPDATE_me(user):
 
     if not (password and first_name and last_name and photo_url and location):
         return jsonify({"Error": "missing fields"}), 400
-    
+
     if fields.get('email'):
         return jsonify({"Error": "use authorized route for email change"}), 403
 
@@ -191,17 +185,18 @@ def UPDATE_me(user):
         buyer.save()
         update_profile_logger.info(f"buyer: {buyer.id}, status: success")
         return jsonify(buyer.to_dict())
-        
+
     return jsonify({"Error": "Not found"}), 404
 
 
 @buyer_routes.get('/buyers/request_email_verification')
 @login_required
 def request_email_verification(user):
+    request_verification_logger = get_logger('request_user_verification')
     field = request.get_json()
     if not field:
         return jsonify({"Error": "Not a valid json"}), 400
-    
+
     buyer_id = user.get('id')
     buyer = storage.get(Buyer, buyer_id)
     if not buyer:
@@ -215,25 +210,28 @@ def request_email_verification(user):
         return jsonify({"status": "email verification sent"}), 200
 
     except Exception as e:
-        request_verification_logger.error(f"buyer: {buyer.id}, status: failed, reason: {str(e)}")
-        return jsonify({"Error": "Sorry a system error occured, try again"}), 500
+        request_verification_logger.error(
+            f"buyer: {buyer.id}, status: failed, reason: {str(e)}")
+        return jsonify(
+            {"Error": "Sorry a system error occured, try again"}), 500
 
 
 @buyer_routes.patch('/buyers/update_email')
 @login_required
 def update_email(user):
     field = request.get_json()
+    email_update_logger = get_logger('user_email_update')
 
     if not field:
         return jsonify({"Error": "not a valid json"})
-    
+
     email = field.get('email')
     buyer_id = user.get('id')
     buyer = storage.get(Buyer, buyer_id)
 
     if not buyer:
         return jsonify({"Error": "buyer not found"}), 404
-    
+
     buyer.email = email
     buyer.email_verified = False
     buyer.save()
@@ -242,36 +240,40 @@ def update_email(user):
         email_sender.send_verification_code(buyer)
         email_update_logger.info(f"buyer: {buyer.id}, status: success")
         return jsonify({"status": "verification email sent"}), 200
-    
+
     except Exception as e:
-        email_update_logger.error(f"buyer: {buyer.id}, status: failed, reason: {str(e)}")
-        return jsonify({"Error": "sorry, a system error occured, try again"}), 500
-    
+        email_update_logger.error(
+            f"buyer: {buyer.id}, status: failed, reason: {str(e)}")
+        return jsonify(
+            {"Error": "sorry, a system error occured, try again"}), 500
+
 
 @buyer_routes.patch('/buyers/<buyer_id>/verify_email')
 @admin_only
 def verify_email(buyer_id):
     field = request.get_json()
+    verify_email_logger = get_logger('verify_user_email')
 
     if not field:
         return jsonify({"Error": "not a valid json"}), 400
-    
+
     buyer = storage.get(Buyer, buyer_id)
     if not buyer:
         return jsonify({"Error": "buyer not found"}), 404
-    
+
     if buyer.verified:
         return jsonify({"Error": "buyer already verified"}), 403
-    
+
     candidate_code = str(field.get('confirmation_code'))
     confirmation_code = redisClient.get(buyer.id)
     if not confirmation_code:
         return jsonify({"Error": "Invalid code"}), 401
-    
+
     if confirmation_code != candidate_code:
-        verify_email_logger.info(f"buyer: {buyer.id}, status: failed, reason: code mismatch")
+        verify_email_logger.info(
+            f"buyer: {buyer.id}, status: failed, reason: code mismatch")
         return jsonify({"Error": "wrong code"}), 401
-    
+
     buyer.email_verified = True
     buyer.save()
     verify_email_logger.info(f"buyer: {buyer.id}, status: success")
@@ -282,22 +284,32 @@ def verify_email(buyer_id):
 @admin_only
 def activate_buyer(buyer_id):
     buyer = storage.get(Buyer, buyer_id)
+    account_activation_logger = get_logger('account_activation')
+    verification_complete_email_logger = get_logger(
+        'verification_complete_email')
+
     if not buyer:
         return jsonify({"Error": "buyer not found"}), 404
     if not buyer.email:
         return jsonify({"Error": "profile incomplete: email is missing"}), 400
     if not buyer.password:
-        return jsonify({"Error": "profile incomplete: password is missing"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: password is missing"}), 400
     if not buyer.first_name:
-        return jsonify({"Error": "profile incomplete: first_name is missing"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: first_name is missing"}), 400
     if not buyer.last_name:
-        return jsonify({"Error": "profile incomplete: last_name is missing"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: last_name is missing"}), 400
     if not buyer.photo_url:
-        return jsonify({"Error": "profile incomplete: photo_url is missing"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: photo_url is missing"}), 400
     if not buyer.location:
-        return jsonify({"Error": "profile incomplete: location is missing"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: location is missing"}), 400
     if not buyer.email_verified:
-        return jsonify({"Error": "profile incomplete: email not verified"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: email not verified"}), 400
 
     buyer.profile_complete = True
     buyer.save()
@@ -305,11 +317,13 @@ def activate_buyer(buyer_id):
 
     try:
         email_sender.send_account_activation_notice(buyer)
-        verification_complete_email_logger.info(f"buyer: {buyer.id}, status: success")
+        verification_complete_email_logger.info(
+            f"buyer: {buyer.id}, status: success")
 
     except Exception as e:
-        verification_complete_email_logger.error(f"buyer: {buyer.id}, status: failed, reason: {str(e)}")
-    
+        verification_complete_email_logger.error(
+            f"buyer: {buyer.id}, status: failed, reason: {str(e)}")
+
     return jsonify(buyer.to_dict()), 200
 
 
@@ -318,22 +332,29 @@ def activate_buyer(buyer_id):
 def activate_me(user):
     buyer_id = user.get('id')
     buyer = storage.get(Buyer, buyer_id)
+    account_activation_logger = get_logger('account_activation')
     if not buyer:
         return jsonify({"Error": "buyer not found"}), 404
     if not buyer.email:
         return jsonify({"Error": "profile incomplete: email is missing"}), 400
     if not buyer.password:
-        return jsonify({"Error": "profile incomplete: password is missing"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: password is missing"}), 400
     if not buyer.first_name:
-        return jsonify({"Error": "profile incomplete: first_name is missing"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: first_name is missing"}), 400
     if not buyer.last_name:
-        return jsonify({"Error": "profile incomplete: last_name is missing"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: last_name is missing"}), 400
     if not buyer.photo_url:
-        return jsonify({"Error": "profile incomplete: photo_url is missing"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: photo_url is missing"}), 400
     if not buyer.location:
-        return jsonify({"Error": "profile incomplete: location is missing"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: location is missing"}), 400
     if not buyer.verified:
-        return jsonify({"Error": "profile incomplete: email not verified"}), 400
+        return jsonify(
+            {"Error": "profile incomplete: email not verified"}), 400
 
     buyer.is_active = True
     buyer.save()
@@ -344,8 +365,9 @@ def activate_me(user):
         account_activation_logger.info(f"buyer: {buyer.id}, status: success")
 
     except Exception as e:
-        account_activation_logger.error(f"buyer: {buyer.id}, status: failed, reason: {str(e)}")
-    
+        account_activation_logger.error(
+            f"buyer: {buyer.id}, status: failed, reason: {str(e)}")
+
     return jsonify(buyer.to_dict()), 200
 
 
@@ -354,6 +376,7 @@ def activate_me(user):
 def deactivate_buyer(buyer_id):
     token = request.cookies.get('auth_token')
     user = verify_token(token)
+    account_deactivation_logger = get_logger('account_deactivation')
 
     buyer = storage.get(Buyer, buyer_id)
     if buyer:
@@ -368,6 +391,7 @@ def deactivate_buyer(buyer_id):
 @login_required
 def deactivate_me(user):
     buyer_id = user.get('id')
+    account_deactivation_logger = get_logger('account_deactivation')
 
     buyer = storage.get(Buyer, buyer_id)
     if buyer:
